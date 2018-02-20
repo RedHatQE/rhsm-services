@@ -1,0 +1,22 @@
+{
+    "name": "rhsm-services",
+    "version": "1.0.0",
+    "description": "A kettle of microservices used by Red Hat Subscription Manager (RHSM) system tests",
+    "main": "index.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/jstavel/rhsm-services.git"
+    },
+    "author": "Jan Stavel @ RedHat",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/jstavel/rhsm-services/issues"
+    },
+    "homepage": "https://github.com/jstavel/rhsm-services#readme",
+    "dependencies": {
+        "ws": "^4.0.0"
+    }
+}
