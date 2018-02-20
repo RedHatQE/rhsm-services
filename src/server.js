@@ -10,11 +10,13 @@ Rx.Observable.fromEvent(wss,'connection')
         return Rx.Observable.fromEvent(fileWatch,'change')
             .map((x) => { return {"socket": ws,
                                   "event": "change",
-                                  "file-name": filename,
-                                  "file-content": fs.readFileSync(filename).toString('base64')}})
+                                  "filename": filename,
+                                  "filecontent": fs.readFileSync(filename).toString('base64')}})
     })
     .subscribe(
-        (x) => {console.log(x)},
+        (x) => {x.socket.send(JSON.stringify({"event":x.event,
+                                              "file-name":x.filename,
+                                              "file-content":x.filecontent}))},
         (err) => {console.log('error: %s', err)},
         () => {console.log('completed')}
     );
