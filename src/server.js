@@ -7,16 +7,17 @@ const fileWatch = fs.watch(filename);
 const wss = new WebSocket.Server({port: 9091});
 Rx.Observable.fromEvent(wss,'connection')
     .flatMap((ws) => {
-        console.log('connection openned');
         return Rx.Observable.fromEvent(fileWatch,'change')
-            .map((x) => { console.log('change');
-                          return {"event": "change",
+            .map((x) => { return {"socket": ws,
+                                  "event": "change",
                                   "file-name": filename,
                                   "file-content": fs.readFileSync(filename).toString('base64')}})
     })
-    .subscribe((x) => {
-        console.log(x);
-    });
+    .subscribe(
+        (x) => {console.log(x)},
+        (err) => {console.log('error: %s', err)},
+        () => {console.log('completed')}
+    );
 
 // const wss = new WebSocket.Server({port: 9091});
 // wss.on('connection', function connection(ws) {
