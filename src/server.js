@@ -6,17 +6,19 @@ const filename = "/etc/rhsm/rhsm.conf";
 const fileWatch = fs.watch(filename);
 const wss = new WebSocket.Server({port: 9091});
 Rx.Observable.fromEvent(wss,'connection')
-    .flatMap((ws) => {
-        return Rx.Observable.fromEvent(fileWatch,'change')
-            .map((x) => { return {"socket": ws,
-                                  "event": "change",
-                                  "filename": filename,
-                                  "filecontent": fs.readFileSync(filename).toString('base64')}})
-    })
+    .flatMap((ws) => Rx.Observable.of({"socket": ws,
+                                       "event": "open",
+                                       "filename": filename,
+                                       "filecontent": fs.readFileSync(filename).toString('base64')})
+                                     .merge( Rx.Observable.fromEvent(fileWatch,'change')
+                                             .map((x) => { return {"socket": ws,
+                                                                   "event": "change",
+                                                                   "filename": filename,
+                                                                   "filecontent": fs.readFileSync(filename).toString('base64')}})))
     .subscribe(
         (x) => {x.socket.send(JSON.stringify({"event":x.event,
-                                              "file-name":x.filename,
-                                              "file-content":x.filecontent}))},
+                                              "file":x.filename,
+                                              "content":x.filecontent}))},
         (err) => {console.log('error: %s', err)},
         () => {console.log('completed')}
     );
@@ -31,7 +33,7 @@ Rx.Observable.fromEvent(wss,'connection')
 //                                 "file-name": filename,
 //                                 "file-content": fs.readFileSync(filename).toString('base64')}));
 //     });
-//     ws.send(JSON.stringify({"event": "init",
+//     ws.send(JSON.stringify({"event": "open",
 //                             "file-name": filename,
 //                             "file-content": fs.readFileSync(filename).toString('base64')}));
 // });
