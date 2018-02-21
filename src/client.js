@@ -1,6 +1,6 @@
 const WebSocket = require('ws');
 const Rx = require('rxjs/Rx');
-const ws = new WebSocket('ws://localhost:9091/');
+const ws = new WebSocket('ws://localhost:9091/monitor/etc/rhsm/rhsm.conf');
 
 Rx.Observable.fromEvent(ws,'open')
     .subscribe((x) => { console.log("connection established") });

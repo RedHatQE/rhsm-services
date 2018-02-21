@@ -4,7 +4,8 @@ const Rx = require('rxjs/Rx');
 
 const filename = "/etc/rhsm/rhsm.conf";
 const fileWatch = fs.watch(filename);
-const wss = new WebSocket.Server({port: 9091});
+const wss = new WebSocket.Server({port: 9091,
+                                  path:"/monitor/etc/rhsm/rhsm.conf"});
 Rx.Observable.fromEvent(wss,'connection')
     .flatMap((ws) => Rx.Observable.of({"socket": ws,
                                        "event": "open",
