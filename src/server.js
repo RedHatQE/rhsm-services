@@ -9,6 +9,7 @@ const wss = new WebSocket.Server({port: 9091,
 Rx.Observable.fromEvent(wss,'connection')
     .flatMap((ws) =>{
 	var msg = (name) => { return {"socket": ws,
+				      "time": (new Date()).toJSON(),
 				      "event": name,
 				      "filename": filename,
 				      "filecontent": fs.readFileSync(filename).toString('base64')}};
@@ -18,6 +19,7 @@ Rx.Observable.fromEvent(wss,'connection')
     })
     .subscribe(
         (x) => {x.socket.send(JSON.stringify({"event":x.event,
+                                              "time": x.time,
                                               "file":x.filename,
                                               "content":x.filecontent}))},
         (err) => {console.log('error: %s', err)},
