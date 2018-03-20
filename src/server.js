@@ -17,7 +17,7 @@ ConnectionsStream.filter(([ws,req]) => req.url.match(/^\/monitor\/(.*)/))
                    "content":fs.readFileSync(filename).toString('base64')}];
     };
   	return Rx.Observable.of(msg("open"))
-      .merge(Rx.Observable.fromEvent(ws,'messageo').map((x) => { return msg("pong"); }));
+      .merge(Rx.Observable.fromEvent(ws,'message').map((x) => { return msg("pong"); }));
   })
   .subscribe(
     ([ws,msg]) => {ws.send(JSON.stringify(msg));},
