@@ -7,17 +7,23 @@ const wss = new WebSocket.Server({port: 9091});
 
 // Rx.Observable streams accepts just one argument. 'connection' event provides two arguments. There is a pre-processing function to merge the args into an array
 var ConnectionsStream = Rx.Observable.fromEvent(wss,'connection', null, (ws,req) => [ws,req]).publish();
+
 ConnectionsStream.filter(([ws,req]) => req.url.match(/^\/monitor\/(.*)/))
   .flatMap(([ws,req]) =>{
+
     let filename = req.url.replace(/^\/monitor\/+/,'/');
+    let fileWatch = fs.watch(filename);
+
   	var msg = (name) => {
       return [ws, {"time": (new Date()).toJSON(),
                    "event": name,
                    "file": filename,
                    "content":fs.readFileSync(filename).toString('base64')}];
     };
+
   	return Rx.Observable.of(msg("open"))
-      .merge(Rx.Observable.fromEvent(ws,'message').map((x) => { return msg("pong"); }));
+      .merge(Rx.Observable.fromEvent(ws,'message').map((x) => { return msg("pong"); }))
+      .merge(Rx.Observable.fromEvent(fileWatch,'change').map((x) => { return msg("change"); }));
   })
   .subscribe(
     ([ws,msg]) => {ws.send(JSON.stringify(msg));},
