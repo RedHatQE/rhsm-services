@@ -22,8 +22,10 @@ ConnectionsStream.filter(([ws,req]) => req.url.match(/^\/monitor\/(.*)/))
     };
 
   	return Rx.Observable.of(msg("open"))
-      .merge(Rx.Observable.fromEvent(ws,'message').map((x) => { return msg("pong"); }))
-      .merge(Rx.Observable.fromEvent(fileWatch,'change').map((x) => { return msg("change"); }));
+      .merge(Rx.Observable.fromEvent(ws,'message').map((x) => { console.log("monitor request appeared: ",x);
+                                                                return msg("pong"); }))
+      .merge(Rx.Observable.fromEvent(fileWatch,'change').map((x) => { console.log("a change of a filename happened");
+                                                                      return msg("change"); }));
   })
   .subscribe(
     ([ws,msg]) => {ws.send(JSON.stringify(msg));},
@@ -44,6 +46,7 @@ ConnectionsStream.filter(([ws,req]) => req.url.match(/^\/execute\/(.*)/))
              .flatMap((x) => {
                let args = x.data;
                let actuallCmd = cmd + " " + args;
+               console.log("a request arrived. cmd to execute:",actuallCmd);
                return Rx.Observable.bindCallback(exec, Array.of)(cmd + " " + x.data)
                  .map((x) => [ws, Object.assign(response('run'),
                                                 {args: args,
