@@ -3,7 +3,7 @@ const Rx = require('rxjs/Rx');
 const ws = new WebSocket('ws://localhost:9091/monitor/etc/rhsm/rhsm.conf');
 
 Rx.Observable.fromEvent(ws,'open')
-    .subscribe((x) => { console.log("connection established") });
+  .subscribe((x) => { console.log("connection established"); });
 
 Rx.Observable.fromEvent(ws,'message')
-    .subscribe((x) => { console.log(x.data)});
+  .subscribe((x) => { console.log(x.data); });
