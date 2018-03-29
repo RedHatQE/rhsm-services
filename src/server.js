@@ -50,7 +50,9 @@ ConnectionsStream.filter(([ws,req]) => req.url.match(/^\/execute\/(.*)/))
                return Rx.Observable.bindCallback(exec, Array.of)(cmd + " " + x.data)
                  .map((x) => [ws, Object.assign(response('run'),
                                                 {args: args,
-                                                 output: x.toString()})]);
+                                                 error: x[0],
+						 stdout: x[1],
+						 stderr: x[2]})]);
              }));
   })
   .subscribe(
