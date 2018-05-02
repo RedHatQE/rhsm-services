@@ -49,7 +49,7 @@ connectionsStream.filter(([ws,req]) => req.url.match(/^\/monitor\/(.*)/))
   })).merge(require('./services/rhsm/status.js')(connectionsStream))
 .subscribe(
     ([ws,msg]) => ws.send(JSON.stringify(msg), (error) => {console.log('error when sending a response');
-							    console.log(error)}),
+							                                             console.log(error);}),
     (err) => {console.log('error: %s', err);},
     () => {console.log('completed');}
   );
