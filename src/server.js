@@ -20,50 +20,38 @@ connectionsStream.filter(([ws,req]) => req.url.match(/^\/monitor\/(.*)/))
     };
 
     return Rx.Observable.of(msg("open"))
-	    .merge(Rx.Observable.fromEvent(ws,'message').map((x) => { console.log("monitor request appeared: ",x);
+	    .merge(Rx.Observable.fromEvent(ws,'message').map((x) => { console.log("monitor request appeared: ");
                                                                 return msg("pong"); }))
 	    .merge(Rx.Observable.fromEvent(fileWatch,'change').map((x) => { console.log("a change of a filename happened");
 									                                                    return msg("change"); }));
-  })
-  .subscribe(
-    ([ws,msg]) => {ws.send(JSON.stringify(msg));},
+  }).merge(
+	connectionsStream.filter(([ws,req]) => req.url.match(/^\/execute\/(.*)/))
+	  .flatMap(([ws,req]) => {
+	    let cmd = req.url.replace(/^\/execute\/+/,'/');
+	  	var response = (name) => {
+	      return {"time": (new Date()).toJSON(),
+	              "event": name,
+	              "command": cmd};
+	    };
+	    return Rx.Observable.of([ws, response('hello, give me arguments to run the command')])
+	      .merge(Rx.Observable.fromEvent(ws,'message')
+	             .flatMap((x) => {
+	               let args = x.data;
+	               let actuallCmd = cmd + " " + args;
+	               console.log("a request arrived. cmd to execute:",actuallCmd);
+	               return Rx.Observable.bindCallback(exec, Array.of)(cmd + " " + x.data)
+	                 .map((x) => [ws, Object.assign(response('run'),
+	                                                {args: args,
+	                                                 error: x[0],
+							                                     stdout: x[1],
+							                                     stderr: x[2]})]);
+	             }));
+  })).merge(require('./services/rhsm/status.js')(connectionsStream))
+.subscribe(
+    ([ws,msg]) => ws.send(JSON.stringify(msg), (error) => {console.log('error when sending a response');
+							    console.log(error)}),
     (err) => {console.log('error: %s', err);},
     () => {console.log('completed');}
   );
-
-connectionsStream.filter(([ws,req]) => req.url.match(/^\/execute\/(.*)/))
-  .flatMap(([ws,req]) => {
-    let cmd = req.url.replace(/^\/execute\/+/,'/');
-  	var response = (name) => {
-      return {"time": (new Date()).toJSON(),
-              "event": name,
-              "command": cmd};
-    };
-    return Rx.Observable.of([ws, response('hello, give me arguments to run the command')])
-      .merge(Rx.Observable.fromEvent(ws,'message')
-             .flatMap((x) => {
-               let args = x.data;
-               let actuallCmd = cmd + " " + args;
-               console.log("a request arrived. cmd to execute:",actuallCmd);
-               return Rx.Observable.bindCallback(exec, Array.of)(cmd + " " + x.data)
-                 .map((x) => [ws, Object.assign(response('run'),
-                                                {args: args,
-                                                 error: x[0],
-						                                     stdout: x[1],
-						                                     stderr: x[2]})]);
-             }));
-  })
-  .subscribe(
-    ([ws,msg]) => ws.send(JSON.stringify(msg)),
-    (err) => console.log('error: %s', err),
-    () => console.log('completed')
-  );
-
-const rhsmStatus = require('./services/rhsm/status.js')(connectionsStream);
-rhsmStatus.subscribe(
-  ([ws,msg]) => ws.send(JSON.stringify(msg)),
-  (err) => console.log('error: %s', err),
-  () => console.log('completed')
-);
 
 connectionsStream.connect();
