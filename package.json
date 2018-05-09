@@ -1,24 +1,25 @@
 {
-    "name": "rhsm-services",
-    "version": "1.0.0",
-    "description": "A kettle of microservices used by Red Hat Subscription Manager (RHSM) system tests",
-    "main": "index.js",
-    "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1"
-    },
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/jstavel/rhsm-services.git"
-    },
-    "author": "Jan Stavel @ RedHat",
-    "license": "ISC",
-    "bugs": {
-        "url": "https://github.com/jstavel/rhsm-services/issues"
-    },
-    "homepage": "https://github.com/jstavel/rhsm-services#readme",
-    "dependencies": {
-        "nodemon": "^1.15.1",
-        "rxjs": "^5.5.6",
-        "ws": "^4.0.0"
-    }
+  "name": "rhsm-services",
+  "version": "1.0.0",
+  "description": "A kettle of microservices used by Red Hat Subscription Manager (RHSM) system tests",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jstavel/rhsm-services.git"
+  },
+  "author": "Jan Stavel @ RedHat",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jstavel/rhsm-services/issues"
+  },
+  "homepage": "https://github.com/jstavel/rhsm-services#readme",
+  "dependencies": {
+    "esm": "^3.0.31",
+    "nodemon": "^1.15.1",
+    "rxjs": "^5.5.6",
+    "ws": "^4.0.0"
+  }
 }
