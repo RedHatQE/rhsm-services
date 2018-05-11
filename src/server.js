@@ -5,7 +5,7 @@ const { exec } = require ('child_process');
 const wss = new WebSocket.Server({port: 9091});
 
 import { Observable, pipe } from 'rxjs/Rx';
-import { filter, map, flatMap, scan, withLatestFrom, combineLatest } from 'rxjs/operators';
+import { filter, map, flatMap, scan, zip, withLatestFrom, combineLatest } from 'rxjs/operators';
 import { merge } from 'rxjs/observable/merge';
 import { monitorFile } from './services/monitor/file.js';
 import { rhsmStatus, getRhsmStatus } from './services/rhsm/status.js';
@@ -33,12 +33,16 @@ let rhsmStatusWebsockets = rhsmStatusConnections.scan (
 
 let statusWhenSubscriptionManagerIsExecuted = executeBinaryStream.pipe(
   filter(([ws,req,msg]) => req.url.includes('/usr/bin/subscription-manager')),
-  map((x) => { console.log('great! subscription-manager has been executed',x[2]); return x; }),
+  map((x) => { console.log('great! subscription-manager has been executed'); return x; }),
   withLatestFrom(rhsmStatusWebsockets), // once a binary execution appears, takes a list of rhsm status websockets
   flatMap(([[ws,req,msg],wss]) => {
     return getRhsmStatus().flatMap((status) => { return Observable.from(wss.map(([ws,req]) => { return [ws,req,status];}));});
   })
 );
+// statusWhenSubscriptionManagerIsExecuted.subscribe(([ws,req,msg]) => {
+//   console.log('aa');
+//   console.log(req.headers['sec-websocket-key']);
+// });
 
 merge(fileMonitorStream,
       rhsmStatusConnections.flatMap(rhsmStatus),

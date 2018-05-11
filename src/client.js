@@ -6,7 +6,8 @@ const wss = [
   new WebSocket('ws://localhost:9091/monitor/etc/rhsm/rhsm.conf'), // wss[2]
   new WebSocket('ws://localhost:9091/execute/usr/bin/touch'),      // wss[3]
   new WebSocket('ws://localhost:9091/execute/usr/bin/subscription-manager'), //wss[4]
-  new WebSocket('ws://localhost:9091/rhsm/status')         //wss[5]
+  new WebSocket('ws://localhost:9091/rhsm/status'),         //wss[5]
+  new WebSocket('ws://localhost:9091/rhsm/status')         //wss[6]
 ];
 
 const wssOpenStream = wss.map((ws) => {
@@ -41,7 +42,13 @@ Rx.Observable.fromEvent(wss[4],'message')
 Rx.Observable.fromEvent(wss[5],'message')
   .subscribe((ev) => {
     let data = JSON.parse(ev.data);
-    console.log(`response for /rhsm/status "${data.overallStatus}"`);
+    console.log(`response for 01 /rhsm/status "${data.overallStatus}"`);
+  });
+
+Rx.Observable.fromEvent(wss[6],'message')
+  .subscribe((ev) => {
+    let data = JSON.parse(ev.data);
+    console.log(`response for 02 /rhsm/status "${data.overallStatus}"`);
   });
 
 // wait till all ws's are openned
