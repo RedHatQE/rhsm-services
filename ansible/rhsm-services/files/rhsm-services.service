@@ -4,6 +4,7 @@ After=network.target
 
 [Service]
 Type=simple
+WorkingDirectory=/opt/rhsm-services
 ExecStart=/usr/bin/node -r esm /opt/rhsm-services/src/server.js
 Restart=always
 
