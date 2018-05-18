@@ -31,6 +31,7 @@ import { map, flatMap } from 'rxjs/operators';
 
 export function getOverallStatus(status){
   let statuses = {
+    0: 'Current',
     1: 'Invalid',
     5: 'Unknown'
   };
