@@ -17,6 +17,8 @@
   },
   "homepage": "https://github.com/jstavel/rhsm-services#readme",
   "dependencies": {
+    "dbus-native": "^0.2.5",
+    "env2": "^2.2.0",
     "esm": "^3.0.31",
     "nodemon": "^1.15.1",
     "rxjs": "^5.5.6",

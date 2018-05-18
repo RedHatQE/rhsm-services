@@ -7,7 +7,8 @@ const wss = [
   new WebSocket('ws://localhost:9091/execute/usr/bin/touch'),      // wss[3]
   new WebSocket('ws://localhost:9091/execute/usr/bin/subscription-manager'), //wss[4]
   new WebSocket('ws://localhost:9091/rhsm/status'),         //wss[5]
-  new WebSocket('ws://localhost:9091/rhsm/status')         //wss[6]
+  new WebSocket('ws://localhost:9091/rhsm/status'),         //wss[6]
+  new WebSocket('ws://localhost:9091/dbus/com.redhat.SubscriptionManager/EntitlementStatus')         //wss[7]
 ];
 
 const wssOpenStream = wss.map((ws) => {
@@ -42,21 +43,29 @@ Rx.Observable.fromEvent(wss[4],'message')
 Rx.Observable.fromEvent(wss[5],'message')
   .subscribe((ev) => {
     let data = JSON.parse(ev.data);
-    console.log(`response for 01 /rhsm/status "${data.overallStatus}"`);
+    console.log(`response for 01 /rhsm/status "${JSON.stringify(data)}"`);
   });
 
 Rx.Observable.fromEvent(wss[6],'message')
   .subscribe((ev) => {
     let data = JSON.parse(ev.data);
-    console.log(`response for 02 /rhsm/status "${data.overallStatus}"`);
+    console.log(`response for 02 /rhsm/status "${JSON.stringify(data)}"`);
+  });
+
+Rx.Observable.fromEvent(wss[7],'message')
+  .subscribe((ev) => {
+    let data = JSON.parse(ev.data);
+    console.log(`response for dbus service "${JSON.stringify(data)}"`);
   });
 
 // wait till all ws's are openned
 Rx.Observable.forkJoin(...wssOpenStream)
   .subscribe((values) => {
     console.log("all websockets are up");
-    //wss[3].send('/etc/rhsm/rhsm.conf'); // touch that file
-    //wss[4].send('unregister');
-    wss[4].send('register --username testuser1 --password password --org admin');
+    wss[3].send('/etc/rhsm/rhsm.conf'); // touch that file
+    setTimeout(()=> wss[4].send('unregister'), 10000);
+    setTimeout(() => wss[5].send('ping'),5000);
+    setTimeout(() => wss[4].send('register --username testuser1 --password password --org admin'),
+               20000);
   });
 
