@@ -20,6 +20,7 @@ export function executeBinary (prefix) {
 	             let actuallCmd = cmd + " " + args;
 	             console.log("a request arrived. cmd to execute:",actuallCmd);
 	             return Observable.bindCallback(exec, Array.of)(cmd + " " + x.data)
+                 .map((x) => {console.log('a binary executed'); console.log(x); return x;})
 	               .map((x) => [ws, req, Object.assign(response('run'),
 	                                                   {args: args,
 	                                                    error: x[0],
