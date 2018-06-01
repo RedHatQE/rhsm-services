@@ -3,22 +3,36 @@ const fs = require('fs');
 const env = require('env2')('.env');
 const express = require('express');
 const http = require('http');
+const bodyParser = require('body-parser');
+const util = require('util');
 
-import { Observable, pipe } from 'rxjs/Rx';
+import { Observable, pipe, Subject } from 'rxjs/Rx';
 import { filter, map, flatMap, scan, zip, withLatestFrom, catchError, combineLatest } from 'rxjs/operators';
 import { merge } from 'rxjs/observable/merge';
 import { monitorFile } from './services/monitor/file.js';
 import { rhsmStatus } from './services/rhsm/status.js';
 import { executeBinary } from './services/execute/binary.js';
 import { runScenario } from './services/testing/scenarion.js';
-//import { dbusService } from './services/dbus/service.js';
+import { sendMessage } from './services/testing/message.js';
+
+//import { testingSignals } from './services/testing/monitor.js';
+
 
 const app = express();
+// parse application/x-www-form-urlencoded
+app.use(bodyParser.urlencoded({ extended: false }));
+
+// parse application/json
+app.use(bodyParser.json());
+
 const server = http.createServer(app);
 const wss = new WebSocket.Server({server});
-//const wss = new WebSocket.Server({port: 9091});
 
-app.post('/run/testing/scenario',runScenario);
+// it is used for sending messages from an application
+let testingSignals$ = new Subject();
+
+app.post('/testing/run/scenario', runScenario(process.env.SCENARION_DIR));
+app.post('/testing/message', sendMessage(testingSignals$));
 
 // Observable streams accepts just one argument. 'connection' event provides two arguments. There is a pre-processing function to merge the args into an array
 var connectionsStream = Observable.fromEvent(wss,'connection', null, (ws,req) => [ws,req]).share();
@@ -50,45 +64,39 @@ let rhsmStatus$ = connectionsStream.pipe(
   })
 );
 
-// let rhsmStatusWebsockets = rhsmStatusConnections.scan (
-//   (acc, [ws,req]) => {
-//     acc.push([ws,req]);
-//     return acc;
-//   }, []);
+let connectionsForTestingSignals = connectionsStream.pipe(
+  filter(([ws,req]) => req.url.match(/^\/ws\/testware\/monitor/)),
+  scan((acc,curr) => {
+    acc.push(curr);
+    let opennedConnections = acc.filter(([ws,req]) => {
+      let isOpen = ws && (ws.readyState === WebSocket.OPEN);
+      return isOpen;});
+    return opennedConnections;
+  },[])
+).share();
 
-// let statusWhenSubscriptionManagerIsExecuted = executeBinaryStream.pipe(
-//   filter(([ws,req,msg]) => req.url.includes('/usr/bin/subscription-manager')),
-//   map((x) => { console.log('great! subscription-manager has been executed'); return x; }),
-//   withLatestFrom(rhsmStatusWebsockets), // once a binary execution appears, takes a list of rhsm status websockets
-//   flatMap(([[ws,req,msg],wss]) => {
-//     return getRhsmStatus().flatMap((status) => { return Observable.from(wss.map(([ws,req]) => { return [ws,req,status];}));});
-//   })
-// );
-// statusWhenSubscriptionManagerIsExecuted.subscribe(([ws,req,msg]) => {
-//   console.log('aa');
-//   console.log(req.headers['sec-websocket-key']);
-// });
-
-// let dbusServiceStream = connectionsStream.pipe(
-//   filter(([ws,req]) => req.url.match(/^\/dbus\/.*/)),
-//   flatMap(dbusService('com.redhat.SubscriptionManager','/EntitlementStatus'))
-// ).share();
+let broadcastOfTestingSignals$ = testingSignals$.pipe(
+  withLatestFrom(connectionsForTestingSignals),
+  flatMap(([msg,connections]) => {
+    return Observable.from(connections.map(([ws,req])=> [ws,req,msg]));
+  })
+);
 
 let socketError$ = connectionsStream.pipe(
-  flatMap(([ws,req]) => Observable.fromEvent(ws,'error')
-	        .map((ev) => { let msg = `error from ws: ${ev.error}`;
-                          //console.log(ev);
-			                    console.log(msg);
-			                    return [ws,req,msg]; })
+  flatMap(([ws,req]) => Observable.fromEvent(ws,'error').map((ev) => { let msg = `error from ws: ${ev.error}`;
+                                                                       //console.log(ev);
+			                                                                 console.log(msg);
+			                                                                 return [ws,req,msg]; })
          )
 );
 
 merge(socketError$,
       fileMonitor$,
       rhsmStatus$,
-      executeBinary$
+      executeBinary$,
+      broadcastOfTestingSignals$
      ).filter(([ws,req,msg]) => { let isOpen = ws && (ws.readyState === WebSocket.OPEN);
-                                  console.log(`is a socket open? ${isOpen}`);
+                                  //console.log(`is a socket open? ${isOpen}`);
                                   if (!isOpen) {
                                     console.log(`a socket is not openned, skip it. ${req}, ${msg}`);
                                   };

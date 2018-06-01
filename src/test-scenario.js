@@ -22,5 +22,5 @@ req.on('error', function(e) {
   console.log('problem with request: ' + e.message);
 });
 // write data to request body
-req.write(JSON.stringify({scenario:"user-changes-a-config-value"}));
+req.write(JSON.stringify({scenario:"register-unregister.sh"}));
 req.end();
