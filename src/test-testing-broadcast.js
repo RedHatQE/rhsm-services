@@ -13,7 +13,7 @@ const wssOpenStream = wss.map((ws) => {
 
 Rx.Observable.fromEvent(wss[0],'message')
   .subscribe((x) => {
-    console.log(x.data);
+    //console.log(x.data);
     let data = JSON.parse(x.data);
     console.log(`response from ws00 ${typeof data}, "${data.event}", "${data.msg}"`);
   });
