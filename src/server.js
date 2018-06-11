@@ -14,9 +14,7 @@ import { rhsmStatus } from './services/rhsm/status.js';
 import { executeBinary } from './services/execute/binary.js';
 import { runScenario } from './services/testing/scenarion.js';
 import { sendMessage } from './services/testing/message.js';
-
-//import { testingSignals } from './services/testing/monitor.js';
-
+import { dbusSystemMonitor } from './services/dbus/monitor.js';
 
 const app = express();
 // parse application/x-www-form-urlencoded
@@ -28,11 +26,7 @@ app.use(bodyParser.json());
 const server = http.createServer(app);
 const wss = new WebSocket.Server({server});
 
-// it is used for sending messages from an application
-let testingSignals$ = new Subject();
-
 app.post('/testing/run/scenario', runScenario(process.env.SCENARION_DIR));
-app.post('/testing/message', sendMessage(testingSignals$));
 
 // Observable streams accepts just one argument. 'connection' event provides two arguments. There is a pre-processing function to merge the args into an array
 var connectionsStream = Observable.fromEvent(wss,'connection', null, (ws,req) => [ws,req]).share();
@@ -55,6 +49,7 @@ let executeBinary$ = connectionsStream.pipe(
   })
 );
 
+
 let rhsmStatus$ = connectionsStream.pipe(
   filter(([ws,req]) => req.url.match(/^\/ws\/rhsm\/status/)),
   flatMap(rhsmStatus),
@@ -64,11 +59,42 @@ let rhsmStatus$ = connectionsStream.pipe(
   })
 );
 
+// -------------------------------------------------------------------------
+// system dbus monitor
+
+let connectionsForDBusSystemMonitor = connectionsStream.pipe(
+  filter(([ws,req]) => req.url.match(/^\/ws\/dbus\/system\/monitor/)),
+  scan((acc,curr) => {
+    let opennedConnections = acc.concat([curr]).filter(([ws,req]) => {
+      let isOpen = ws && (ws.readyState === WebSocket.OPEN);
+      return isOpen;});
+    return opennedConnections;
+  },[])
+).share();
+
+let dbusSystemMonitor$ = dbusSystemMonitor();
+
+let broadcastOfDbusSystemMonitor$ = dbusSystemMonitor$.pipe(
+  withLatestFrom(connectionsForDBusSystemMonitor),
+  flatMap(([msg,connections]) => {
+    return Observable.from(connections.map(([ws,req]) => [ws,req,msg]));
+  }),
+  catchError((error,caught) => {
+    console.log(error);
+    return Observable.of([null,null,""]);
+  })
+);
+
+// -----------------------------------------------------------------------
+// testware monitor
+// it is used for sending messages from an application
+let testingSignals$ = new Subject();
+app.post('/testing/message', sendMessage(testingSignals$));
+
 let connectionsForTestingSignals = connectionsStream.pipe(
   filter(([ws,req]) => req.url.match(/^\/ws\/testware\/monitor/)),
   scan((acc,curr) => {
-    acc.push(curr);
-    let opennedConnections = acc.filter(([ws,req]) => {
+    let opennedConnections = acc.concat([curr]).filter(([ws,req]) => {
       let isOpen = ws && (ws.readyState === WebSocket.OPEN);
       return isOpen;});
     return opennedConnections;
@@ -79,8 +105,13 @@ let broadcastOfTestingSignals$ = testingSignals$.pipe(
   withLatestFrom(connectionsForTestingSignals),
   flatMap(([msg,connections]) => {
     return Observable.from(connections.map(([ws,req])=> [ws,req,msg]));
+  }),
+  catchError((error,caught) => {
+    console.log(error);
+    return Observable.of([null,null,""]);
   })
 );
+// ------------------------------------------------------------------------
 
 let socketError$ = connectionsStream.pipe(
   flatMap(([ws,req]) => Observable.fromEvent(ws,'error').map((ev) => { let msg = `error from ws: ${ev.error}`;
@@ -94,6 +125,7 @@ merge(socketError$,
       fileMonitor$,
       rhsmStatus$,
       executeBinary$,
+      broadcastOfDbusSystemMonitor$,
       broadcastOfTestingSignals$
      ).filter(([ws,req,msg]) => { let isOpen = ws && (ws.readyState === WebSocket.OPEN);
                                   //console.log(`is a socket open? ${isOpen}`);
