@@ -53,7 +53,6 @@ export function rhsmStatus ([ws,req]){
       return merge(
         Observable.fromEvent(ws,'message').flatMap(
           (x) => { return Observable.bindNodeCallback((callback) => {
-            console.log('callback was fired');
             return channel.check_status(callback);
           })();}),
         Observable.fromEvent(channel,"entitlement_status_changed")
